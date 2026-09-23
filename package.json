@@ -1,0 +1,10 @@
+{
+  "name": "mode2-sprites",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "MSX2 Mode 2 multi-color sprite editor with OR-color support",
+  "scripts": {
+    "test": "node --test test/*.test.js"
+  }
+}

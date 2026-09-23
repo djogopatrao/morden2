@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>MSX2 Mode 2 Sprite Editor</title>
+<link rel="stylesheet" href="src/style.css" />
+</head>
+<body>
+  <header id="toolbar">
+    <div id="palette-host"></div>
+    <div id="preview-host"></div>
+    <div id="coord-host" class="coord-display" aria-live="polite">Row –, Col –, Color –, Composite –</div>
+  </header>
+  <div id="edit-toolbar">
+    <div id="history-host"></div>
+    <div id="edit-toolbar-host"></div>
+    <div id="import-toolbar-host"></div>
+    <div id="export-toolbar-host"></div>
+  </div>
+  <div id="import-message-host" role="status" aria-live="polite"></div>
+  <main id="grids-host"></main>
+  <script type="module" src="src/app.js"></script>
+</body>
+</html>
