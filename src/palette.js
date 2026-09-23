@@ -32,7 +32,7 @@ function screen8Hex(r, g, b) {
 }
 const SCREEN8_RGB = [
   null, // 0: transparent
-  [0, 0, 1],
+  [0, 0, 0],
   [3, 0, 0],
   [3, 0, 1],
   [0, 3, 0],
