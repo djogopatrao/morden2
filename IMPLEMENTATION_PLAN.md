@@ -168,6 +168,8 @@ tested, but not required for the preview itself to work:
 6. Copy captures the selection per §5.4.
 7. Paste (whole-grid clipboard): replace target grid's contents immediately (per spec §5.4 resolved default — no drag needed since grids are uniform size).
 8. Paste (rect clipboard): floating-paste mode — draggable overlay on the target grid, confirm (click outside / Enter / commit button) or cancel (Escape / cancel button), per spec §5.4.
+9. Right-click quick-erase: prevents contextmenu and paints transparent (erases) via e.button === 2, documented in HANDOFF.md.
+10. Middle-click eyedropper: handles e.button === 1 by loading the target pixel's row color to state.currentColor, excluding transparent pixels per spec §5.1. Documented in HANDOFF.md.
 9. Wire all of the above into the Phase 4 undo stack.
 10. Manual check: rectangular copy from one grid, drag-position paste into another, confirm row-color-overwrite semantics (§5.1) apply correctly on commit; confirm cancel leaves target untouched.
 

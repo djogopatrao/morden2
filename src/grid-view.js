@@ -258,6 +258,17 @@ export function createGridView(sprite, state, onChange, opts = {}) {
   }
 
   canvas.addEventListener('pointerdown', (e) => {
+    if (e.button === 1 && !paste && state.tool !== 'select') {
+      const cell = cellFromEvent(e);
+      if (!cell) return;
+      opts.onActivate && opts.onActivate();
+      history && history.begin();
+      // Eyedropper: set palette color to pixel's row color (skip transparent pixels)
+      state.currentColor = getPixel(sprite, cell.row, cell.col) ? sprite.rowColors[cell.row] : 0;
+      draw();
+      onChange && onChange();
+      return;
+    }
     canvas.setPointerCapture(e.pointerId);
     opts.onActivate && opts.onActivate();
     if (paste) {
@@ -314,6 +325,14 @@ export function createGridView(sprite, state, onChange, opts = {}) {
       return;
     }
     history && history.commit();
+  });
+  canvas.addEventListener('contextmenu', (e) => {
+    e.preventDefault();
+    const cell = cellFromEvent(e);
+    if (!cell) return;
+    paintPixel(sprite, cell.row, cell.col, 0);
+    draw();
+    onChange && onChange();
   });
   canvas.addEventListener('pointercancel', () => {
     if (pasteDrag) {
