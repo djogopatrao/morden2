@@ -32,12 +32,9 @@ export function addGrid(project) {
   return true;
 }
 
-// Removes the grid at `index`. Grid 0 cannot be removed to preserve a permanent first sprite.
-// Only grids N where N > 0 may be removed when multiple grids exist (FUNCTIONAL_SPEC.md §5.2)
+// Removes the grid at `index`. All grids are removable when more than one exists.
+// When only one grid remains (any index), it is protected per MSX2 constraint — no first sprite required.
 export function removeGrid(project, index) {
-  // Enforce: grid 0 is pinned/protected; cannot remove the first grid
-  if (index === 0) return false;
-  
   if (project.grids.length <= 1) return false;
   if (index < 0 || index >= project.grids.length) return false;
   project.grids.splice(index, 1);
