@@ -32,9 +32,12 @@ export function addGrid(project) {
   return true;
 }
 
-// Removes the grid at `index`. A project must always keep at least one
-// grid, but which one — grid 0 included — is no longer pinned.
+// Removes the grid at `index`. Grid 0 cannot be removed to preserve a permanent first sprite.
+// Only grids N where N > 0 may be removed when multiple grids exist (FUNCTIONAL_SPEC.md §5.2)
 export function removeGrid(project, index) {
+  // Enforce: grid 0 is pinned/protected; cannot remove the first grid
+  if (index === 0) return false;
+  
   if (project.grids.length <= 1) return false;
   if (index < 0 || index >= project.grids.length) return false;
   project.grids.splice(index, 1);
