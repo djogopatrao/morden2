@@ -1,4 +1,4 @@
-import { GRID_SIZE, getPixel, paintPixel, recolorRow } from './model.js';
+import { GRID_SIZE, getPixel, paintPixel, recolorRow, bucketFill as doBucketFill } from './model.js';
 import { MSX2_PALETTE } from './palette.js';
 import { normalizeRect } from './clipboard.js';
 
@@ -98,11 +98,12 @@ export function createGridView(sprite, state, onChange, opts = {}) {
   const canvasWrap = document.createElement('div');
   canvasWrap.className = 'grid-canvas-wrap';
 
-  const canvas = document.createElement('canvas');
-  canvas.width = GRID_SIZE * CELL;
-  canvas.height = GRID_SIZE * CELL;
-  canvas.className = 'grid-canvas';
-  canvasWrap.appendChild(canvas);
+const canvas = document.createElement('canvas');
+canvas.width = GRID_SIZE * CELL;
+canvas.height = GRID_SIZE * CELL;
+canvas.className = 'grid-canvas';
+canvas.tabIndex = 0;
+let isMouseDownOnCanvas = false;
 
   const rowColorCol = document.createElement('div');
   rowColorCol.className = 'row-color-col';
@@ -312,7 +313,7 @@ export function createGridView(sprite, state, onChange, opts = {}) {
   canvas.addEventListener('pointerleave', () => {
     opts.onHover && opts.onHover(null);
   });
-  canvas.addEventListener('pointerup', () => {
+  canvas.addEventListener('pointerup', (e) => {
     if (pasteDrag) {
       pasteDrag = null;
       return;
@@ -324,6 +325,20 @@ export function createGridView(sprite, state, onChange, opts = {}) {
       opts.selection && opts.selection.set({ kind: 'rect', ...rect });
       return;
     }
+    
+    // Handle fill tool click
+    if (state.tool === 'fill' && !pasteDrag) {
+      const cell = cellFromEvent(e);
+      if (cell) {
+        history && history.begin();
+        const sprite = opts.sprite; // Use the sprite passed to this grid view
+        doBucketFill(sprite, cell.row, cell.col, state.currentColor);
+        draw();
+        history && history.commit();
+        onChange && onChange();
+      }
+    }
+    
     history && history.commit();
   });
   canvas.addEventListener('contextmenu', (e) => {

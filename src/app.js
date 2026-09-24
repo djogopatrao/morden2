@@ -243,18 +243,70 @@ window.addEventListener('beforeunload', () => autosave.flush());
 const pencilBtn = button('Pencil', () => setTool('paint'));
 const selectBtn = button('Select', () => setTool('select'));
 
+setTool('paint');
+
 function setTool(tool) {
   state.tool = tool;
-  pencilBtn.classList.toggle('active', tool === 'paint');
-  selectBtn.classList.toggle('active', tool === 'select');
+  
+  if (tool === 'fill') {
+    // Activate fill mode - remove active class from all buttons first
+    const editHost = document.getElementById('edit-toolbar-host');
+    if (editHost) {
+      const btns = editHost.querySelectorAll('.edit-btn');
+      btns.forEach(btn => btn.classList.remove('active'));
+    }
+  }
 }
 
-function doSelectAll() {
-  const target = activeGridIndex === -1 ? 0 : activeGridIndex;
-  if (!project.grids[target]) return;
-  activeGridIndex = target;
-  selectionState = { gridIndex: target, selection: { kind: 'whole' } };
-  refreshSelectionUI();
+const activeGridCanvas = canvas; // Reference to last clicked grid's canvas for fill tool
+
+// ---- Pencil/Select/Fill toolbar ----
+function setTool(tool) {
+  if (state.tool === 'fill') {
+    document.getElementById('edit-toolbar-host').querySelectorAll('.edit-btn').forEach(btn => btn.classList.remove('active'));
+  }
+}
+
+// ---- Grid click handling for fill tool ----
+
+function getCellAt(e) {
+  const canvas = activeGridCanvas || project.grids[0]?.element?.canvas;
+  
+  if (!canvas || !project.grids[activeGridIndex]) return null;
+  
+  const rect = canvas.getBoundingClientRect();
+  const col = Math.floor(((e.clientX - rect.left) / rect.width) * GRID_SIZE);
+  const row = Math.floor(((e.clientY - rect.top) / rect.height) * GRID_SIZE);
+  
+  if (row < 0 || row >= GRID_SIZE || col < 0 || col >= GRID_SIZE) return null;
+  
+  // Don't allow fill tool during paste drag
+  if (pasteState?.gridIndex === activeGridIndex) return null;
+  
+  return { row, col };
+}
+
+function handleGridClick(e) {
+  const cell = getCellAt(e);
+  if (!cell) return;
+
+  // Handle fill tool click
+  if (state.tool === 'fill') {
+    const sprite = project.grids[activeGridIndex];
+    history.perform(() => {
+      bucketFill(sprite, cell.row, cell.col, state.currentColor);
+    });
+    render();
+    return;
+  }
+
+  // Original paint/select behavior
+  if (pasteState?.gridIndex === activeGridIndex) {
+    pasteState = null;
+    return;
+  }
+
+  history && history.commit();
 }
 
 function doCut() {
@@ -343,10 +395,11 @@ const rotateBtn = button('Rotate', doRotate);
 const mirrorHBtn = button('Flip H', doMirrorH);
 const mirrorVBtn = button('Flip V', doMirrorV);
 const clearBtn = button('Clear', doClear);
+const fillBtn = createToggleButton('Fill');
 
 setTool('paint');
 
-[pencilBtn, selectBtn, cutBtn, copyBtn, pasteBtn, rotateBtn, mirrorHBtn, mirrorVBtn, clearBtn].forEach((b) => {
+[pencilBtn, selectBtn, fillBtn, cutBtn, copyBtn, pasteBtn, rotateBtn, mirrorHBtn, mirrorVBtn, clearBtn].forEach((b) => {
   b.className = 'edit-btn';
   editHost.appendChild(b);
 });

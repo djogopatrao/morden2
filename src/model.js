@@ -77,3 +77,50 @@ export function cloneSprite(sprite) {
     y: sprite.y,
   };
 }
+
+// Bucket flood fill implementation (backlogged feature)
+export function bucketFill(sprite, row, col, targetColor) {
+  if (!sprite || !targetColor || row < 0 || row >= 16 || col < 0 || col >= 16) return sprite;
+  
+  const GRID_SIZE = 16;
+  const stack = [{r: row, c: col}];
+  
+  while (stack.length > 0) {
+    const curr = stack.pop();
+    const r = curr.r;
+    const c = curr.c;
+    
+    if (r < 0 || r >= 16 || c < 0 || c >= 16) continue;
+    if (sprite.opacity[r * GRID_SIZE + c] === 0) continue;
+    
+    const currentColor = sprite.rowColors[r];
+    
+    if (currentColor !== 0 && currentColor === targetColor) {
+      continue; // already same color, skip for efficiency
+    }
+    
+    // Fill with target color
+    sprite.rowColors[r] = targetColor;
+    sprite.opacity[r * GRID_SIZE + c] = 1;
+    
+    // Add connected neighbors (flood through same-color regions)
+    const directions = [
+      {r: r-1, c: c}, 
+      {r: r+1, c: c}, 
+      {r: r, c: c-1}, 
+      {r: r, c: c+1}
+    ];
+    
+    for (const dir of directions) {
+      const idx = dir.r * GRID_SIZE + dir.c;
+      if (idx >= 0 && idx < sprite.opacity.length) {
+        // Flood through transparent or same-color region
+        if (sprite.opacity[idx] === 0 || sprite.rowColors[dir.r] === targetColor) {
+          stack.push({r: dir.r, c: dir.c});
+        }
+      }
+    }
+  }
+  
+  return sprite;
+}
