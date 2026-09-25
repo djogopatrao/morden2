@@ -60,7 +60,16 @@ body.help-page {
 }
 
 .help-footer img { display: block; height: 100px; width: auto; }
+.help-footer a { color: #8fb4ff; }
 
+.help-content .license-notice {
+  padding: 12px 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
 
 .help-layout {
   display: flex;

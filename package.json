@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "description": "MSX2 Mode 2 multi-color sprite editor with OR-color support",
+  "license": "GPL-3.0-or-later",
   "scripts": {
     "test": "node --test test/*.test.js"
   }

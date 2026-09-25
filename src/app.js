@@ -597,7 +597,10 @@ function createMenu(label, help, items) {
   menuHost.appendChild(wrap);
 }
 
-createMenu('File', 'file-menu', [['New project', doNewProject]]);
+createMenu('File', 'file-menu', [
+  ['New project', doNewProject],
+  ['License (GNU GPL v3)', () => openHelp('license')],
+]);
 createMenu('Import', 'import', [
   ['PNG image…', () => pickFile('image/png', doImportPng)],
   ['TinySprite file…', () => pickFile('.tiny,text/plain', doImportTiny)],
