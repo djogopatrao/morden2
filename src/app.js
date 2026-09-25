@@ -65,6 +65,7 @@ const statusSpacer = statusItem('status-spacer');
 const statusTool = statusItem();
 const statusCount = statusItem();
 const statusSave = statusItem('status-save');
+statusSave.dataset.help = 'autosave';
 statusHost.append(statusPos, statusColor, statusComposite, statusSpacer, statusTool, statusCount, statusSave);
 
 function setSaveStatus(text) {
@@ -224,6 +225,7 @@ historyHost.appendChild(redoBtn);
 function showConfirm(message, onConfirm) {
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
+  overlay.dataset.help = 'file-menu';
   const dialog = document.createElement('div');
   dialog.className = 'modal-dialog';
   const msg = document.createElement('p');
@@ -414,6 +416,12 @@ const clearBtn = iconButton('clear', 'Clear selection', doClear);
   });
 });
 
+[
+  [pencilBtn, 'tool-pencil'], [fillBtn, 'tool-fill'], [selectBtn, 'tool-select'],
+  [cutBtn, 'clipboard'], [copyBtn, 'clipboard'], [pasteBtn, 'clipboard'],
+  [rotateBtn, 'transforms'], [mirrorHBtn, 'transforms'], [mirrorVBtn, 'transforms'], [clearBtn, 'clear'],
+].forEach(([b, help]) => { b.dataset.help = help; });
+
 setTool('paint');
 
 // ---- Static exports: PNG, C, BIN (FUNCTIONAL_SPEC.md §7) ----
@@ -557,9 +565,10 @@ function closeMenu() {
   openMenu = null;
 }
 
-function createMenu(label, items) {
+function createMenu(label, help, items) {
   const wrap = document.createElement('div');
   wrap.className = 'menu';
+  wrap.dataset.help = help;
   const btn = button(label, () => {
     const wasOpen = openMenu && openMenu.button === btn;
     closeMenu();
@@ -588,12 +597,12 @@ function createMenu(label, items) {
   menuHost.appendChild(wrap);
 }
 
-createMenu('File', [['New project', doNewProject]]);
-createMenu('Import', [
+createMenu('File', 'file-menu', [['New project', doNewProject]]);
+createMenu('Import', 'import', [
   ['PNG image…', () => pickFile('image/png', doImportPng)],
   ['TinySprite file…', () => pickFile('.tiny,text/plain', doImportTiny)],
 ]);
-createMenu('Export', [
+createMenu('Export', 'export', [
   ['PNG images', doExportPng],
   ['C source', doExportC],
   ['Binary (.bin)', doExportBin],
@@ -792,6 +801,7 @@ function renderGrids() {
     addCount.textContent = `${project.grids.length} of ${MAX_GRIDS} sprites`;
     addBtn.append(addLabel, addCount);
     addBtn.title = 'Add another sprite';
+    addBtn.dataset.help = 'sprites';
     addBtn.addEventListener('click', () => {
       history.perform(() => addGrid(project));
       renderGrids();
@@ -806,3 +816,65 @@ renderGrids();
 updateHistoryButtons();
 updateEditButtons();
 updateCoordDisplay();
+
+// ---- Context help: hold Ctrl and click anything ----
+//
+// While Ctrl is held the cursor becomes the "help" arrow; a Ctrl+click
+// opens help.html at the section named by the nearest `data-help`
+// ancestor of the clicked element. The listeners run in the capture
+// phase on window, ahead of every other handler, and swallow the
+// gesture so the click never paints, selects or presses anything.
+
+const HELP_URL = 'help.html';
+
+function openHelp(section) {
+  // A named target reuses one help tab instead of opening a new one each time.
+  const win = window.open(`${HELP_URL}#${section}`, 'morden2-help');
+  if (win) win.focus();
+}
+
+function setHelpCursor(on) {
+  document.documentElement.classList.toggle('help-mode', on);
+}
+
+window.addEventListener('keydown', (e) => { if (e.key === 'Control') setHelpCursor(true); });
+window.addEventListener('keyup', (e) => { if (e.key === 'Control') setHelpCursor(false); });
+window.addEventListener('blur', () => setHelpCursor(false));
+// Catches Ctrl being pressed/released while the window wasn't focused.
+window.addEventListener('pointermove', (e) => setHelpCursor(e.ctrlKey));
+
+// The most specific help target under the pointer. Starts from the
+// clicked element's nearest `data-help` ancestor, then narrows to the
+// smallest `data-help` descendant containing the point — disabled
+// buttons ignore the pointer in help mode (see style.css), so a click
+// on one lands on its container and is resolved back to it here.
+function helpSectionAt(e) {
+  const start = e.target instanceof Element ? e.target.closest('[data-help]') : null;
+  if (!start) return 'overview';
+  let best = start;
+  let bestArea = Infinity;
+  start.querySelectorAll('[data-help]').forEach((el) => {
+    const r = el.getBoundingClientRect();
+    const area = r.width * r.height;
+    if (area > 0 && area < bestArea && e.clientX >= r.left && e.clientX < r.right && e.clientY >= r.top && e.clientY < r.bottom) {
+      best = el;
+      bestArea = area;
+    }
+  });
+  return best.dataset.help;
+}
+
+function interceptHelpClick(e) {
+  if (!e.ctrlKey || e.button !== 0) return;
+  e.preventDefault();
+  e.stopImmediatePropagation();
+  if (e.type === 'pointerdown') openHelp(helpSectionAt(e));
+}
+['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'].forEach((type) => {
+  window.addEventListener(type, interceptHelpClick, true);
+});
+
+const helpBtn = iconButton('help', 'Help (Ctrl+click anything for help on it)', () => openHelp('overview'));
+helpBtn.className = 'icon-btn';
+helpBtn.dataset.help = 'context-help';
+document.getElementById('help-host').appendChild(helpBtn);

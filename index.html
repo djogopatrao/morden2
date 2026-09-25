@@ -10,8 +10,8 @@
 </head>
 <body>
   <div class="app">
-    <header class="topbar">
-      <div class="brand">
+    <header class="topbar" data-help="layout">
+      <div class="brand" data-help="overview">
         <span id="brand-logo"></span>
         <div class="brand-text">
           <span class="brand-name">MORDEN2</span>
@@ -19,32 +19,33 @@
         </div>
       </div>
       <nav id="menu-host" class="menus" aria-label="Main menu"></nav>
-      <div id="history-host" class="history"></div>
+      <div id="history-host" class="history" data-help="undo-redo"></div>
       <div class="topbar-spacer"></div>
-      <div class="palette-type">
+      <div class="palette-type" data-help="palette-type">
         <span class="palette-type-label">Palette</span>
         <div id="palette-type-host" class="segmented" role="group" aria-label="Palette"></div>
       </div>
+      <div id="help-host"></div>
     </header>
 
     <div class="app-body">
-      <aside id="tool-rail" class="tool-rail" aria-label="Tools"></aside>
+      <aside id="tool-rail" class="tool-rail" aria-label="Tools" data-help="layout"></aside>
 
-      <main class="workspace">
-        <div class="workspace-head">
+      <main class="workspace" data-help="sprites">
+        <div class="workspace-head" data-help="or-mode">
           <h1>Sprites</h1>
           <span class="workspace-hint">An OR sprite mixes its color with the sprite before it.</span>
         </div>
-        <div id="import-message-host" role="status" aria-live="polite"></div>
+        <div id="import-message-host" role="status" aria-live="polite" data-help="import"></div>
         <div id="grids-host"></div>
       </main>
 
-      <aside class="side-panel">
-        <section class="panel-section">
+      <aside class="side-panel" data-help="layout">
+        <section class="panel-section" data-help="palette">
           <h2 class="panel-title">Color</h2>
           <div id="palette-host"></div>
         </section>
-        <section class="panel-section">
+        <section class="panel-section" data-help="preview">
           <div class="panel-title-row">
             <h2 class="panel-title">Preview</h2>
             <div id="zoom-host" class="segmented segmented-sm" role="group" aria-label="Preview zoom"></div>
@@ -54,7 +55,7 @@
       </aside>
     </div>
 
-    <footer id="status-host" class="statusbar" aria-live="polite"></footer>
+    <footer id="status-host" class="statusbar" aria-live="polite" data-help="status-bar"></footer>
   </div>
   <script type="module" src="src/app.js"></script>
 </body>

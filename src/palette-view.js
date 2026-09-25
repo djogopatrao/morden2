@@ -80,6 +80,7 @@ function mixPair(a, b, target, usedColors) {
 export function createPaletteView(state, onChange, opts = {}) {
   const el = document.createElement('div');
   el.className = 'palette-panel';
+  el.dataset.help = 'palette';
 
   const currentEl = document.createElement('div');
   currentEl.className = 'current-color';
@@ -101,6 +102,7 @@ export function createPaletteView(state, onChange, opts = {}) {
 
   const mixesEl = document.createElement('div');
   mixesEl.className = 'mixes';
+  mixesEl.dataset.help = 'or-mixes';
   el.appendChild(mixesEl);
 
   function renderCurrent() {
@@ -184,6 +186,7 @@ export function createPaletteView(state, onChange, opts = {}) {
     overlay.className = 'modal-overlay';
     const dialog = document.createElement('div');
     dialog.className = 'modal-dialog mixes-dialog';
+    dialog.dataset.help = 'or-mixes';
     dialog.setAttribute('role', 'dialog');
     dialog.setAttribute('aria-modal', 'true');
 

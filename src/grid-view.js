@@ -39,6 +39,7 @@ export function createGridView(sprite, state, onChange, opts = {}) {
   const history = opts.history;
   const wrapper = document.createElement('div');
   wrapper.className = 'grid-view' + (opts.active ? ' active' : '');
+  wrapper.dataset.help = 'sprites';
 
   const header = document.createElement('div');
   header.className = 'grid-header';
@@ -46,6 +47,7 @@ export function createGridView(sprite, state, onChange, opts = {}) {
   const label = document.createElement('span');
   label.className = 'grid-label';
   label.textContent = opts.label || '';
+  label.dataset.help = 'tool-select';
   label.title = 'Select the whole sprite';
   label.tabIndex = 0;
   label.setAttribute('role', 'button');
@@ -76,6 +78,7 @@ export function createGridView(sprite, state, onChange, opts = {}) {
   orToggle.type = 'button';
   orToggle.className = 'or-toggle' + (sprite.orMode ? ' active' : '');
   orToggle.textContent = 'OR';
+  orToggle.dataset.help = 'or-mode';
   orToggle.title = 'Toggle OR-color mode for this sprite';
   orToggle.setAttribute('aria-pressed', String(!!sprite.orMode));
   orToggle.setAttribute('aria-label', `Toggle OR-color mode for ${opts.label || 'this sprite'}`);
@@ -115,10 +118,12 @@ export function createGridView(sprite, state, onChange, opts = {}) {
   canvas.width = GRID_SIZE * CELL;
   canvas.height = GRID_SIZE * CELL;
   canvas.className = 'grid-canvas';
+  canvas.dataset.help = 'drawing';
   canvasWrap.appendChild(canvas);
 
   const rowColorCol = document.createElement('div');
   rowColorCol.className = 'row-color-col';
+  rowColorCol.dataset.help = 'row-colors';
   const rowSwatches = [];
   for (let r = 0; r < GRID_SIZE; r++) {
     const sw = document.createElement('div');
@@ -139,6 +144,7 @@ export function createGridView(sprite, state, onChange, opts = {}) {
   if (sprite.orMode && opts.orNote) {
     const note = document.createElement('div');
     note.className = 'or-note';
+    note.dataset.help = 'or-mode';
     note.textContent = opts.orNote;
     wrapper.appendChild(note);
   }

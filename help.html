@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>MORDEN2 Help</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Silkscreen&display=swap" />
+<link rel="stylesheet" href="src/style.css" />
+<link rel="stylesheet" href="src/help.css" />
+</head>
+<body class="help-page">
+<header class="help-top">
+  <a class="help-brand" href="index.html">
+    <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><rect x="1" y="1" width="9" height="9" fill="#db6559"/><rect x="12" y="1" width="9" height="9" fill="#3eb849"/><rect x="1" y="12" width="9" height="9" fill="#5955e0"/><rect x="12" y="12" width="9" height="9" fill="#ded087"/></svg>
+    <span class="brand-name">MORDEN2</span>
+    <span class="help-brand-sub">Help</span>
+  </a>
+  <span class="help-top-tip">Tip: in the editor, hold <kbd>Ctrl</kbd> and click anything to jump to its section here.</span>
+</header>
+
+<div class="help-layout">
+<nav class="help-toc" aria-label="Contents">
+  <h2>Contents</h2>
+  <ol>
+    <li><a href="#overview">Overview</a></li>
+    <li><a href="#msx2-sprites">MSX2 sprite basics</a></li>
+    <li><a href="#layout">The screen at a glance</a></li>
+    <li><a href="#sprites">Sprites</a></li>
+    <li><a href="#drawing">Drawing on a grid</a></li>
+    <li><a href="#tool-pencil">Pencil</a></li>
+    <li><a href="#tool-fill">Fill</a></li>
+    <li><a href="#tool-select">Select</a></li>
+    <li><a href="#clipboard">Cut, copy &amp; paste</a></li>
+    <li><a href="#transforms">Rotate &amp; flip</a></li>
+    <li><a href="#clear">Clear</a></li>
+    <li><a href="#row-colors">Row colors</a></li>
+    <li><a href="#or-mode">OR mode</a></li>
+    <li><a href="#palette">Color palette</a></li>
+    <li><a href="#palette-type">Regular / Screen 8</a></li>
+    <li><a href="#or-mixes">OR mixes</a></li>
+    <li><a href="#preview">Preview</a></li>
+    <li><a href="#undo-redo">Undo &amp; redo</a></li>
+    <li><a href="#file-menu">File menu</a></li>
+    <li><a href="#import">Import</a></li>
+    <li><a href="#export">Export</a></li>
+    <li><a href="#autosave">Autosave</a></li>
+    <li><a href="#status-bar">Status bar</a></li>
+    <li><a href="#shortcuts">Keyboard &amp; mouse</a></li>
+    <li><a href="#context-help">Context help</a></li>
+    <li><a href="#references">References</a></li>
+  </ol>
+</nav>
+
+<main class="help-content">
+
+<section id="overview">
+  <h1>MORDEN2</h1>
+  <p class="lead">MORDEN2 is a browser editor for <strong>MSX2 sprite mode 2</strong> sprites, built around the one thing other MSX sprite editors don't show you: the <strong>OR-color</strong> effect between overlapping sprites.</p>
+  <p>You draw up to 8 sprites of 16×16 pixels, switch any of them to OR mode, and the <a href="#preview">preview</a> shows exactly what the MSX2 video chip will display when they overlap. When you're done, <a href="#export">export</a> the result as BASIC, C, raw binary, PNG or a TinySprite backup.</p>
+  <p>Everything runs in your browser. Your work is <a href="#autosave">saved automatically</a> on this computer.</p>
+</section>
+
+<section id="msx2-sprites">
+  <h2>MSX2 sprite basics</h2>
+  <p>A few hardware rules shape everything in the editor:</p>
+  <ul>
+    <li><strong>16×16 pixels, one bit per pixel.</strong> Each pixel is either transparent or opaque.</li>
+    <li><strong>One color per row.</strong> Every opaque pixel in a row shares that row's color. That's why painting a pixel recolors its whole row (see <a href="#row-colors">Row colors</a>).</li>
+    <li><strong>At most 8 sprites on one scanline.</strong> MORDEN2 caps a project at 8 sprites so whatever you design can really be shown at once.</li>
+    <li><strong>Lower sprite number = higher priority.</strong> Where sprites overlap, the leftmost card (Sprite 0) is drawn on top.</li>
+    <li><strong>OR color (the CC bit).</strong> A sprite line with the CC bit set has no priority of its own. Where it overlaps the sprite before it, the two color indexes are combined with a bitwise OR, which gives you a third color in that spot. See <a href="#or-mode">OR mode</a>.</li>
+  </ul>
+  <p>The full details are in the MSX2 Technical Handbook, chapter 4, section 5.3 "Sprite mode 2" (<a href="https://konamiman.github.io/MSX2-Technical-Handbook/md/Chapter4a.html#53-sprite-mode-2" target="_blank" rel="noopener">online</a>, or the <a href="References/CHAPTER%204%20-%20VDP%20AND%20DISPLAY%20SCREEN%20(Sections%201%20to%205)%20_%20MSX2-Technical-Handbook.html#53-sprite-mode-2" target="_blank">copy in this project</a>).</p>
+</section>
+
+<section id="layout">
+  <h2>The screen at a glance</h2>
+  <dl class="defs">
+    <dt>Top bar</dt><dd>The <a href="#file-menu">File</a>, <a href="#import">Import</a> and <a href="#export">Export</a> menus, <a href="#undo-redo">Undo / Redo</a>, the <a href="#palette-type">palette switch</a>, and a Help button that opens this page.</dd>
+    <dt>Tool rail (left)</dt><dd>Drawing tools (<a href="#tool-pencil">Pencil</a>, <a href="#tool-fill">Fill</a>, <a href="#tool-select">Select</a>), then <a href="#clipboard">Cut / Copy / Paste</a>, then <a href="#transforms">Rotate / Flip</a> and <a href="#clear">Clear</a>. Greyed-out buttons don't apply right now.</dd>
+    <dt>Sprites (center)</dt><dd>One card per <a href="#sprites">sprite</a>, each with its drawing grid and <a href="#row-colors">row colors</a>.</dd>
+    <dt>Side panel (right)</dt><dd>The <a href="#palette">palette</a>, the <a href="#or-mixes">OR mixes</a> for the current color, and the <a href="#preview">preview</a>.</dd>
+    <dt>Status bar (bottom)</dt><dd>What's under the cursor, the current tool, the sprite count and the save state. See <a href="#status-bar">Status bar</a>.</dd>
+  </dl>
+</section>
+
+<section id="sprites">
+  <h2>Sprites</h2>
+  <p>Each card is one hardware sprite. Cards are numbered from 0, left to right, and <strong>that order matters</strong>: it is the priority order on the MSX2 and decides which sprite an <a href="#or-mode">OR sprite</a> mixes with. Exports keep the same order.</p>
+  <ul>
+    <li><strong>Add sprite</strong>: the dashed card at the end adds an empty sprite, up to 8. It shows how many you have.</li>
+    <li><strong>Remove</strong>: the <span class="ui">×</span> in a card's header deletes it. The cards after it move left and are renumbered. A project always keeps at least one sprite, so the button is hidden when only one is left.</li>
+    <li><strong>Active sprite</strong>: the sprite with the blue border and the <span class="ui">Active</span> tag. It's the last one you clicked, or Sprite 0 at the start. <a href="#clipboard">Paste</a>, <a href="#transforms">Rotate / Flip</a> and <kbd>Ctrl</kbd>+<kbd>A</kbd> act on it.</li>
+    <li><strong>OR</strong>: the header button that switches the sprite's <a href="#or-mode">OR mode</a> on and off.</li>
+  </ul>
+</section>
+
+<section id="drawing">
+  <h2>Drawing on a grid</h2>
+  <p>Pick a color in the <a href="#palette">palette</a>, then click or drag on a grid. What happens depends on the tool chosen in the rail:</p>
+  <ul>
+    <li><a href="#tool-pencil">Pencil</a> paints pixels one by one.</li>
+    <li><a href="#tool-fill">Fill</a> fills a connected area.</li>
+    <li><a href="#tool-select">Select</a> marks a rectangle for the clipboard.</li>
+  </ul>
+  <p>Two mouse shortcuts:</p>
+  <ul>
+    <li><strong>Right-click</strong> erases the pixel under the cursor, whatever the tool.</li>
+    <li><strong>Middle-click</strong> is an eyedropper (with Pencil or Fill): it picks that pixel's color (or transparency) as the current color.</li>
+  </ul>
+  <p>When you hover a pixel, the same row and column are highlighted in <em>every</em> sprite and in the preview, which makes it easy to line up pixels that should OR together.</p>
+</section>
+
+<section id="tool-pencil">
+  <h2>Pencil <kbd>P</kbd></h2>
+  <p>Click to paint one pixel, or drag to paint a stroke. A whole stroke is one <a href="#undo-redo">undo</a> step.</p>
+  <ul>
+    <li>Painting with a color makes the pixel opaque <strong>and sets that row's color</strong>, so other opaque pixels in the row change color too. That's the one-color-per-row hardware rule, not a bug.</li>
+    <li>Painting with the transparent swatch erases pixels and leaves the row color alone.</li>
+  </ul>
+</section>
+
+<section id="tool-fill">
+  <h2>Fill <kbd>F</kbd></h2>
+  <p>Click a pixel to fill every pixel connected to it (up, down, left and right) that has the <strong>same color</strong>. Transparent counts as a color, so clicking an empty area fills it, and clicking a shape recolors it.</p>
+  <ul>
+    <li>With the transparent swatch, Fill erases the connected area.</li>
+    <li>Clicking a pixel that already has the current color does nothing.</li>
+    <li>Rows are still single-color: every row the fill touches takes the new color, including pixels in that row outside the filled area.</li>
+  </ul>
+</section>
+
+<section id="tool-select">
+  <h2>Select <kbd>S</kbd></h2>
+  <p>Drag on a grid to select a rectangle. The selection is shown in blue and belongs to one sprite at a time.</p>
+  <ul>
+    <li>Click a sprite's <strong>name</strong> in its card header to select the whole sprite.</li>
+    <li><kbd>Ctrl</kbd>+<kbd>A</kbd> selects the whole <a href="#sprites">active sprite</a>.</li>
+    <li><kbd>Esc</kbd> clears the selection.</li>
+  </ul>
+  <p>A selection enables <a href="#clipboard">Cut, Copy</a> and <a href="#clear">Clear</a>.</p>
+</section>
+
+<section id="clipboard">
+  <h2>Cut, copy &amp; paste</h2>
+  <p>Cut <kbd>Ctrl</kbd>+<kbd>X</kbd> and Copy <kbd>Ctrl</kbd>+<kbd>C</kbd> take the current <a href="#tool-select">selection</a>: its pixels plus the colors of the rows it covers. Cut also clears those pixels.</p>
+  <p>Paste <kbd>Ctrl</kbd>+<kbd>V</kbd> goes into the <a href="#sprites">active sprite</a>:</p>
+  <ul>
+    <li><strong>A whole sprite</strong> replaces the active sprite's contents right away, including its OR setting.</li>
+    <li><strong>A rectangle</strong> appears as a floating overlay with a yellow frame. Drag it into position, then press <kbd>Enter</kbd> or click outside the sprite to place it. <kbd>Esc</kbd> cancels. While pasting, the other tools are disabled.</li>
+  </ul>
+  <p>Pasting follows the <a href="#row-colors">row color</a> rule: any row where the pasted piece has an opaque pixel takes the copied row's color.</p>
+</section>
+
+<section id="transforms">
+  <h2>Rotate &amp; flip</h2>
+  <p>These act on the whole <a href="#sprites">active sprite</a>. They are disabled while a rectangle (not the whole sprite) is selected in it.</p>
+  <ul>
+    <li><strong>Rotate</strong> turns the sprite 90° clockwise. Because rows become columns, each new row takes the color most of its pixels came from.</li>
+    <li><strong>Flip horizontal</strong> mirrors left to right. Row colors don't change.</li>
+    <li><strong>Flip vertical</strong> mirrors top to bottom. Row colors move with their rows.</li>
+  </ul>
+</section>
+
+<section id="clear">
+  <h2>Clear</h2>
+  <p>Makes every pixel in the current <a href="#tool-select">selection</a> transparent. Row colors are kept, which is harmless because a row with no opaque pixels shows nothing.</p>
+</section>
+
+<section id="row-colors">
+  <h2>Row colors</h2>
+  <p>The narrow column to the right of each grid shows the color of each of its 16 rows, with the palette number. A <strong>dashed outline</strong> means the row has no color yet.</p>
+  <p><strong>Click a row's swatch</strong> to give that row the current color. Its opaque pixels are recolored and no pixels are added or removed.</p>
+  <p>This column is exactly what the MSX2 stores in the sprite color table: one byte per row.</p>
+</section>
+
+<section id="or-mode">
+  <h2>OR mode</h2>
+  <p>Turn on the orange <span class="ui">OR</span> button on a sprite card to set the CC bit on all 16 of its rows. The card then says which sprite it mixes with.</p>
+  <p>How the MSX2 handles it:</p>
+  <ul>
+    <li>An OR sprite <strong>mixes with the nearest sprite before it that is not in OR mode</strong>. Several OR sprites in a row all mix with that same sprite, and with each other.</li>
+    <li>Where they overlap, the color <strong>indexes</strong> are combined bit by bit: for example 8 (<code>1000</code>) OR 7 (<code>0111</code>) = 15 (<code>1111</code>). The <a href="#or-mixes">OR mixes</a> box shows which pairs give the current color.</li>
+    <li>Where the OR sprite doesn't overlap, it shows its own color.</li>
+    <li>If an OR sprite has no normal sprite before it (for example Sprite 0 in OR mode), there's nothing to mix with. The card warns you, and MORDEN2 draws it as a normal sprite.</li>
+  </ul>
+  <p>Card order decides who mixes with whom. The <a href="#preview">preview</a> always applies these exact rules. More in the MSX2 Technical Handbook, <a href="https://konamiman.github.io/MSX2-Technical-Handbook/md/Chapter4a.html#532-sprite-display-settings" target="_blank" rel="noopener">section 5.3.2</a>.</p>
+</section>
+
+<section id="palette">
+  <h2>Color palette</h2>
+  <p>The top of the side panel shows the <strong>current color</strong> large, with its number, name and hex value. Below it are the 16 swatches:</p>
+  <ul>
+    <li>The checkered swatch is <strong>transparency</strong>: drawing with it erases.</li>
+    <li>Swatches 1–15 are the sprite colors. Click one to make it current.</li>
+  </ul>
+  <p>The palette is fixed, as on the real hardware. You can switch between two fixed palettes with <a href="#palette-type">Regular / Screen 8</a>.</p>
+</section>
+
+<section id="palette-type">
+  <h2>Regular / Screen 8</h2>
+  <p>The switch in the top-right corner picks how color numbers 1–15 look:</p>
+  <ul>
+    <li><strong>Regular</strong>: the standard MSX sprite colors.</li>
+    <li><strong>Screen 8</strong>: the fixed colors sprites get in SCREEN 8, which don't follow the regular palette.</li>
+  </ul>
+  <p>Switching only changes how the numbers are displayed and exported to PNG. The sprite data (the color numbers) stays the same. The choice is saved with the project.</p>
+</section>
+
+<section id="or-mixes">
+  <h2>OR mixes</h2>
+  <p>The box under the palette lists pairs of colors that <a href="#or-mode">OR</a> together into the current color. For example, color 3 can be made from 1 OR 2. Use it to plan a third color with just two sprites.</p>
+  <ul>
+    <li>A pair with a <strong>green border</strong> uses a color already in one of your sprites, so it's usually the cheapest option.</li>
+    <li>The box shows up to 6 pairs so it always keeps the same size. When there are more, <span class="ui">More (n)</span> opens a window with all of them. Close it with <span class="ui">×</span>, <kbd>Esc</kbd> or by clicking outside.</li>
+    <li>Some colors (such as 1, 2, 4 and 8) have no mix, because they have only one bit set.</li>
+  </ul>
+</section>
+
+<section id="preview">
+  <h2>Preview</h2>
+  <p>The preview shows all sprites combined the way the MSX2 would draw them, with priority order and <a href="#or-mode">OR mixing</a> applied. It updates as you draw.</p>
+  <ul>
+    <li><strong>Drag a sprite</strong> in the preview to move it relative to the others. OR only happens where sprites overlap, so this is how you control where the mixed color appears. Each drag is one <a href="#undo-redo">undo</a> step, and the offsets are used by the BASIC and PNG exports.</li>
+    <li><strong>Recenter</strong> puts every sprite back at the same position (0, 0).</li>
+    <li><strong>1× / 1.5× / 2×</strong> change the preview size.</li>
+    <li>The pixel you hover in a grid is outlined in green here, at its real position.</li>
+  </ul>
+</section>
+
+<section id="undo-redo">
+  <h2>Undo &amp; redo</h2>
+  <p><span class="ui">Undo</span> <kbd>Ctrl</kbd>+<kbd>Z</kbd> and <span class="ui">Redo</span> <kbd>Ctrl</kbd>+<kbd>Y</kbd> (or <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd>) share one history for the whole project. It covers painting, filling, row recoloring, OR toggles, adding and removing sprites, clipboard actions, rotate / flip, preview drags and imports.</p>
+  <ul>
+    <li>A whole stroke or drag counts as one step.</li>
+    <li>Clicks that change nothing (like erasing an empty pixel) don't add a step.</li>
+    <li>The history lasts for the current session only. <a href="#file-menu">New project</a> clears it.</li>
+  </ul>
+</section>
+
+<section id="file-menu">
+  <h2>File menu</h2>
+  <p><strong>New project</strong> erases every sprite and starts over with one empty sprite, after asking you to confirm. It also clears the undo history, the clipboard and the <a href="#autosave">autosaved copy</a>, so it <strong>can't be undone</strong>. <a href="#export">Export</a> first if you want to keep your work.</p>
+</section>
+
+<section id="import">
+  <h2>Import</h2>
+  <p>Imported sprites are <strong>added after</strong> your existing ones, and each import is one <a href="#undo-redo">undo</a> step. Import creates <strong>one sprite per color</strong> in the image. That always reproduces the image exactly, but it may use more sprites than a hand-made OR design would.</p>
+  <dl class="defs">
+    <dt id="import-png">PNG image…</dt>
+    <dd>The image must be exactly <strong>16×16</strong>, use only colors from the current <a href="#palette-type">palette</a>, and have only fully opaque or fully transparent pixels. If the colors need more sprites than you have room for (8 in total), nothing is imported and a message explains why.</dd>
+    <dt id="import-tiny">TinySprite file…</dt>
+    <dd>A backup file (<code>.tiny</code>) from <a href="http://msx.jannone.org/tinysprite/tinysprite.html" target="_blank" rel="noopener">TinySprite</a>, of type <code>msx2</code>. Every slot is imported in order. Slots that don't fit in the 8-sprite limit are skipped whole, and a warning tells you the import was truncated.</dd>
+  </dl>
+  <p>Error and warning messages appear above the sprites; close them with <span class="ui">×</span>.</p>
+</section>
+
+<section id="export">
+  <h2>Export</h2>
+  <p>Every format writes the sprites in card order (= priority order), using the same bytes the MSX2 expects: 32 pattern bytes and 16 color bytes per sprite, with the CC bit set on OR sprites. Layouts are described in the handbook, <a href="https://konamiman.github.io/MSX2-Technical-Handbook/md/Chapter4a.html#532-sprite-display-settings" target="_blank" rel="noopener">section 5.3.2</a>.</p>
+  <dl class="defs">
+    <dt>PNG images</dt><dd>One file per sprite (<code>sprite-0.png</code>, <code>sprite-1.png</code>, …) plus <code>composite.png</code>, the combined result as shown in the preview. Your browser may ask permission to download several files.</dd>
+    <dt>C source</dt><dd><code>sprites.c</code> with two arrays: <code>sprite_patterns[]</code> and <code>sprite_attributes[]</code> (the color table bytes).</dd>
+    <dt>Binary (.bin)</dt><dd>Two raw files, <code>patterns.bin</code> and <code>colors.bin</code>, ready to load into the sprite pattern and sprite color tables in VRAM.</dd>
+    <dt>TinySprite</dt><dd><code>sprites.tiny</code>, one slot per sprite with that sprite's own pixels, for opening in <a href="http://msx.jannone.org/tinysprite/tinysprite.html" target="_blank" rel="noopener">TinySprite</a>.</dd>
+    <dt>BASIC listing</dt><dd><code>sprites.bas</code>: a runnable MSX-BASIC program. It switches to SCREEN 5, loads the patterns and colors from <code>DATA</code> lines, and places the sprites at their <a href="#preview">preview</a> offsets so you can see the OR effect on a real MSX2 or an emulator such as <a href="https://openmsx.org/" target="_blank" rel="noopener">openMSX</a>.</dd>
+  </dl>
+</section>
+
+<section id="autosave">
+  <h2>Autosave</h2>
+  <p>Every change is saved in your browser's local storage a moment after you make it, and restored when you reopen MORDEN2. The status bar shows <span class="ui">Saving…</span> (orange dot) then <span class="ui">Saved</span> (green dot).</p>
+  <p>This copy lives only in this browser on this computer. Clearing site data or using a private window loses it. Use <a href="#export">Export</a> (TinySprite is the most complete format) to keep or share your work.</p>
+</section>
+
+<section id="status-bar">
+  <h2>Status bar</h2>
+  <dl class="defs">
+    <dt>Sprite · Row · Col</dt><dd>The pixel under the cursor.</dd>
+    <dt>Color</dt><dd>That pixel's color in the hovered sprite (<em>none</em> if transparent).</dd>
+    <dt>Composite</dt><dd>The color the MSX2 would actually show at that spot, after priority and <a href="#or-mode">OR mixing</a> with the other sprites.</dd>
+    <dt>Tool, sprite count, save state</dt><dd>The current tool, how many of the 8 sprites you use, and the <a href="#autosave">autosave</a> state.</dd>
+  </dl>
+</section>
+
+<section id="shortcuts">
+  <h2>Keyboard &amp; mouse</h2>
+  <table class="keys">
+    <thead><tr><th>Keys</th><th>Action</th></tr></thead>
+    <tbody>
+      <tr><td><kbd>P</kbd> / <kbd>F</kbd> / <kbd>S</kbd></td><td><a href="#tool-pencil">Pencil</a> / <a href="#tool-fill">Fill</a> / <a href="#tool-select">Select</a></td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>Z</kbd></td><td><a href="#undo-redo">Undo</a></td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>Y</kbd>, <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd></td><td><a href="#undo-redo">Redo</a></td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>A</kbd></td><td><a href="#tool-select">Select</a> the whole active sprite</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+<kbd>X</kbd> / <kbd>C</kbd> / <kbd>V</kbd></td><td><a href="#clipboard">Cut / Copy / Paste</a></td></tr>
+      <tr><td><kbd>Enter</kbd></td><td>Place a floating <a href="#clipboard">paste</a></td></tr>
+      <tr><td><kbd>Esc</kbd></td><td>Cancel a paste, clear the selection, or close a menu or window</td></tr>
+      <tr><td>Right-click on a grid</td><td>Erase a pixel</td></tr>
+      <tr><td>Middle-click on a grid</td><td>Pick that pixel's color (eyedropper)</td></tr>
+      <tr><td><kbd>Ctrl</kbd>+click anything</td><td>Open this help at that item's section</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section id="context-help">
+  <h2>Context help</h2>
+  <p>Hold <kbd>Ctrl</kbd> in the editor: the cursor becomes an arrow with a question mark. Click any part of the screen (a tool, a menu, a sprite grid, the preview…) and this page opens at the section about it. Nothing in the editor changes when you do this.</p>
+  <p>The page opens in its own browser tab and is reused, so help never piles up in extra tabs. The <span class="ui">?</span> button in the top bar opens it too.</p>
+</section>
+
+<section id="references">
+  <h2>References</h2>
+  <ul>
+    <li>MSX2 Technical Handbook, chapter 4 "VDP and display screen": <a href="https://konamiman.github.io/MSX2-Technical-Handbook/md/Chapter4a.html#5-sprites" target="_blank" rel="noopener">online</a> · <a href="References/CHAPTER%204%20-%20VDP%20AND%20DISPLAY%20SCREEN%20(Sections%201%20to%205)%20_%20MSX2-Technical-Handbook.html#5-sprites" target="_blank">copy in this project</a> · <a href="https://konamiman.github.io/MSX2-Technical-Handbook/" target="_blank" rel="noopener">whole handbook</a></li>
+    <li><a href="https://en.wikipedia.org/wiki/Yamaha_V9938" target="_blank" rel="noopener">Yamaha V9938</a>, the MSX2 video chip (Wikipedia)</li>
+    <li><a href="http://msx.jannone.org/tinysprite/tinysprite.html" target="_blank" rel="noopener">TinySprite</a>, the MSX sprite editor whose file format MORDEN2 imports and exports</li>
+    <li><a href="https://github.com/pvmm/spritetools.py" target="_blank" rel="noopener">spritetools.py</a>, another set of MSX sprite tools</li>
+    <li><a href="https://openmsx.org/" target="_blank" rel="noopener">openMSX</a>, an MSX emulator for trying the BASIC export</li>
+  </ul>
+</section>
+
+</main>
+</div>
+</body>
+</html>

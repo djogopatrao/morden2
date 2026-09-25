@@ -22,6 +22,7 @@ export const ICONS = {
   chevron: svg('<path d="M6 8l4 4 4-4"/>', 12),
   close: svg('<path d="M5 5l10 10M15 5L5 15"/>', 14),
   plus: svg('<path d="M10 3.5v13M3.5 10h13"/>', 22),
+  help: svg('<circle cx="10" cy="10" r="7.5"/><path d="M7.8 7.8a2.3 2.3 0 114 1.5c-.8.6-1.8 1-1.8 2.2"/><path d="M10 14.3h.01"/>', 18),
   recenter: svg('<circle cx="10" cy="10" r="5"/><path d="M10 2v3M10 15v3M2 10h3M15 10h3"/>', 14),
 };
 
