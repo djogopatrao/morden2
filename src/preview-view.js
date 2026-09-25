@@ -1,8 +1,11 @@
 import { GRID_SIZE } from './model.js';
 import { compositeGrids } from './composite.js';
 import { MSX2_PALETTE } from './palette.js';
+import { ICONS } from './icons.js';
 
-const SCALE = 6; // px per source pixel (half the previous size; same 32x32-cell area)
+// Selectable px-per-source-pixel zoom levels; the preview panel is 256px wide.
+export const PREVIEW_SCALES = [4, 6, 8];
+const DEFAULT_SCALE = 6;
 // Total visible preview area is 32x32 source pixels (a 16x16 sprite
 // plus 8 cells of drag slack on each side).
 const PADDING_CELLS = 8;
@@ -30,27 +33,28 @@ export function createPreviewView(project, onChange, opts = {}) {
   wrapper.appendChild(canvas);
   const ctx = canvas.getContext('2d');
 
-  const padding = PADDING_CELLS * SCALE;
+  let scale = DEFAULT_SCALE;
+  let padding = PADDING_CELLS * scale;
   let dragState = null; // { index, startClientX, startClientY, startSpriteX, startSpriteY }
 
   function worldToCanvas(wx, wy) {
-    return [wx * SCALE + padding, wy * SCALE + padding];
+    return [wx * scale + padding, wy * scale + padding];
   }
   function canvasToWorld(cx, cy) {
-    return [(cx - padding) / SCALE, (cy - padding) / SCALE];
+    return [(cx - padding) / scale, (cy - padding) / scale];
   }
 
   function resize() {
-    const size = GRID_SIZE * SCALE + padding * 2;
+    const size = GRID_SIZE * scale + padding * 2;
     if (canvas.width !== size) canvas.width = size;
     if (canvas.height !== size) canvas.height = size;
   }
 
   function drawCheckerboard() {
-    const cell = 6;
+    const cell = scale;
     for (let y = 0; y < canvas.height; y += cell) {
       for (let x = 0; x < canvas.width; x += cell) {
-        ctx.fillStyle = ((x / cell + y / cell) % 2 === 0) ? '#333' : '#3a3a3a';
+        ctx.fillStyle = ((x / cell + y / cell) % 2 === 0) ? '#1d1f24' : '#23262c';
         ctx.fillRect(x, y, cell, cell);
       }
     }
@@ -67,7 +71,7 @@ export function createPreviewView(project, onChange, opts = {}) {
         if (!c) continue;
         const [cx, cy] = worldToCanvas(minX + x, minY + y);
         ctx.fillStyle = MSX2_PALETTE[c];
-        ctx.fillRect(cx, cy, SCALE, SCALE);
+        ctx.fillRect(cx, cy, scale, scale);
       }
     }
 
@@ -78,10 +82,10 @@ export function createPreviewView(project, onChange, opts = {}) {
       const worldY = hoverSprite.y + hover.row;
       const [hx, hy] = worldToCanvas(worldX, worldY);
       ctx.fillStyle = 'rgba(57, 214, 138, 0.22)';
-      ctx.fillRect(hx, hy, SCALE, SCALE);
+      ctx.fillRect(hx, hy, scale, scale);
       ctx.strokeStyle = '#39d68a';
       ctx.lineWidth = 1;
-      ctx.strokeRect(hx + 0.5, hy + 0.5, SCALE - 1, SCALE - 1);
+      ctx.strokeRect(hx + 0.5, hy + 0.5, scale - 1, scale - 1);
 
       // The composited color at this world position can differ from the
       // hovered grid's own pixel color (other OR-grouped sprites may
@@ -124,7 +128,7 @@ export function createPreviewView(project, onChange, opts = {}) {
       startClientY: e.clientY,
       startSpriteX: sprite.x,
       startSpriteY: sprite.y,
-      clientToWorld: scaleFactor / SCALE,
+      clientToWorld: scaleFactor / scale,
     };
   });
 
@@ -153,7 +157,8 @@ export function createPreviewView(project, onChange, opts = {}) {
   const recenterBtn = document.createElement('button');
   recenterBtn.type = 'button';
   recenterBtn.className = 'recenter-btn';
-  recenterBtn.textContent = 'Recenter';
+  recenterBtn.innerHTML = ICONS.recenter;
+  recenterBtn.append('Recenter');
   recenterBtn.title = 'Move every sprite back to the same origin (0,0)';
   recenterBtn.addEventListener('click', () => {
     const mutate = () => project.grids.forEach((s) => { s.x = 0; s.y = 0; });
@@ -163,6 +168,12 @@ export function createPreviewView(project, onChange, opts = {}) {
   });
   wrapper.appendChild(recenterBtn);
 
+  function setScale(next) {
+    scale = next;
+    padding = PADDING_CELLS * scale;
+    draw();
+  }
+
   draw();
-  return { element: wrapper, draw };
+  return { element: wrapper, draw, setScale, getScale: () => scale };
 }

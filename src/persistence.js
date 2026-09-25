@@ -60,13 +60,18 @@ export function clearSavedProject(storage = window.localStorage) {
 
 // Debounced autosave: call `trigger()` on every mutation; the actual
 // `saveProject` write is coalesced to at most once per `delayMs`.
-export function createAutosave(project, { storage = window.localStorage, delayMs = DEBOUNCE_MS } = {}) {
+// `onSave`, if given, is called after each completed write.
+export function createAutosave(project, { storage = window.localStorage, delayMs = DEBOUNCE_MS, onSave } = {}) {
   let timer = null;
+  function save() {
+    saveProject(project, storage);
+    onSave && onSave();
+  }
   function trigger() {
     if (timer !== null) clearTimeout(timer);
     timer = setTimeout(() => {
       timer = null;
-      saveProject(project, storage);
+      save();
     }, delayMs);
   }
   function flush() {
@@ -74,7 +79,7 @@ export function createAutosave(project, { storage = window.localStorage, delayMs
       clearTimeout(timer);
       timer = null;
     }
-    saveProject(project, storage);
+    save();
   }
   return { trigger, flush };
 }

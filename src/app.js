@@ -1,7 +1,7 @@
 import { createProject, addGrid, removeGrid, getPixel, GRID_SIZE, MAX_GRIDS } from './model.js';
 import { createGridView } from './grid-view.js';
 import { createPaletteView } from './palette-view.js';
-import { createPreviewView } from './preview-view.js';
+import { createPreviewView, PREVIEW_SCALES } from './preview-view.js';
 import { createHistory } from './history.js';
 import { copySelection, cutSelection, clearSelectionPixels, pasteWhole, pasteRectAt } from './clipboard.js';
 import { rotateCW, mirrorHorizontal, mirrorVertical } from './transform.js';
@@ -13,7 +13,9 @@ import { parseTinySprite, serializeTinySprite } from './codec/tinysprite.js';
 import { exportBasic } from './codec/basic-export.js';
 import { decomposeByColor } from './decompose-by-color.js';
 import { downloadBlob } from './download.js';
-import { setPaletteType, PALETTES } from './palette.js';
+import { setPaletteType, PALETTES, MSX2_PALETTE } from './palette.js';
+import { groupGrids } from './composite.js';
+import { ICONS, LOGO } from './icons.js';
 
 const project = createProject();
 const restored = loadProject();
@@ -22,7 +24,13 @@ if (restored) {
   project.paletteType = restored.paletteType;
 }
 setPaletteType(project.paletteType);
-const autosave = createAutosave(project);
+const autosaveInner = createAutosave(project, { onSave: () => setSaveStatus('Saved') });
+// Wraps the debounced autosave so the status bar can show "Saving…"
+// between an edit and the (debounced) localStorage write.
+const autosave = {
+  trigger() { setSaveStatus('Saving…'); autosaveInner.trigger(); },
+  flush() { autosaveInner.flush(); },
+};
 const state = { currentColor: 1, tool: 'paint' };
 
 // Selection is transient UI state (not part of Project/undo — see
@@ -42,19 +50,53 @@ let hoverCell = null; // { row, col } | null
 // pixel) when other OR-grouped sprites also cover that position.
 let compositeHoverColor = null;
 
-function colorLabel(c) {
-  if (c === null) return '–';
-  return c === 0 ? 'transparent' : String(c);
+// ---- Status bar ----
+
+function statusItem(className) {
+  const el = document.createElement('span');
+  el.className = 'status-item' + (className ? ' ' + className : '');
+  return el;
+}
+const statusHost = document.getElementById('status-host');
+const statusPos = statusItem();
+const statusColor = statusItem();
+const statusComposite = statusItem();
+const statusSpacer = statusItem('status-spacer');
+const statusTool = statusItem();
+const statusCount = statusItem();
+const statusSave = statusItem('status-save');
+statusHost.append(statusPos, statusColor, statusComposite, statusSpacer, statusTool, statusCount, statusSave);
+
+function setSaveStatus(text) {
+  statusSave.textContent = text;
+  statusSave.classList.toggle('pending', text !== 'Saved');
+}
+setSaveStatus('Saved');
+
+function colorStatus(el, label, c) {
+  el.textContent = `${label} `;
+  if (c === null) {
+    el.append('–');
+    return;
+  }
+  const dot = document.createElement('span');
+  dot.className = 'status-dot' + (c === 0 ? ' transparent-swatch' : '');
+  if (c !== 0) dot.style.background = MSX2_PALETTE[c];
+  el.append(dot, c === 0 ? 'none' : String(c));
 }
 
 function updateCoordDisplay() {
-  if (!hoverCell) {
-    coordHost.textContent = 'Row –, Col –, Color –, Composite –';
-    return;
-  }
-  coordHost.textContent =
-    `Row ${hoverCell.row}, Col ${hoverCell.col}, ` +
-    `Color ${colorLabel(hoverCell.color)}, Composite ${colorLabel(compositeHoverColor)}`;
+  statusPos.textContent = hoverCell
+    ? `Sprite ${hoverCell.gridIndex} · Row ${hoverCell.row} · Col ${hoverCell.col}`
+    : 'Row – · Col –';
+  colorStatus(statusColor, 'Color', hoverCell ? hoverCell.color : null);
+  colorStatus(statusComposite, 'Composite', hoverCell ? compositeHoverColor : null);
+}
+
+const TOOL_NAMES = { paint: 'Pencil', fill: 'Fill', select: 'Select' };
+function updateStatusMeta() {
+  statusTool.textContent = TOOL_NAMES[state.tool];
+  statusCount.textContent = `${project.grids.length} of ${MAX_GRIDS} sprites`;
 }
 
 function setHoverCell(cell) {
@@ -93,11 +135,11 @@ const paletteHost = document.getElementById('palette-host');
 const gridsHost = document.getElementById('grids-host');
 const previewHost = document.getElementById('preview-host');
 const historyHost = document.getElementById('history-host');
-const coordHost = document.getElementById('coord-host');
-const editHost = document.getElementById('edit-toolbar-host');
-const importHost = document.getElementById('import-toolbar-host');
-const exportHost = document.getElementById('export-toolbar-host');
+const toolRail = document.getElementById('tool-rail');
+const menuHost = document.getElementById('menu-host');
+const zoomHost = document.getElementById('zoom-host');
 const importMessageHost = document.getElementById('import-message-host');
+document.getElementById('brand-logo').innerHTML = LOGO;
 
 const paletteView = createPaletteView(state, () => {}, { getUsedColors: computeUsedColors });
 paletteHost.appendChild(paletteView.element);
@@ -107,22 +149,21 @@ paletteHost.appendChild(paletteView.element);
 // Switching re-maps every existing color index 1-15 to the new
 // palette's hue — the sprite data itself (indices) is untouched, only
 // what those indices render/export as.
-const paletteTypeHost = document.createElement('div');
-paletteTypeHost.className = 'palette-type-toggle';
+const paletteTypeHost = document.getElementById('palette-type-host');
 const paletteTypeBtns = {};
 Object.keys(PALETTES).forEach((type) => {
-  const label = type === 'screen8' ? 'Screen8' : 'Regular';
+  const label = type === 'screen8' ? 'Screen 8' : 'Regular';
   const btn = button(label, () => setActivePaletteType(type));
-  btn.className = 'palette-type-btn';
+  btn.className = 'seg-btn';
   btn.title = `Use the ${label} palette`;
   paletteTypeBtns[type] = btn;
   paletteTypeHost.appendChild(btn);
 });
-paletteHost.appendChild(paletteTypeHost);
 
 function updatePaletteTypeButtons() {
   Object.entries(paletteTypeBtns).forEach(([type, btn]) => {
     btn.classList.toggle('active', type === project.paletteType);
+    btn.setAttribute('aria-pressed', String(type === project.paletteType));
   });
 }
 
@@ -157,16 +198,24 @@ const preview = createPreviewView(project, () => updateHistoryButtons(), {
 });
 previewHost.appendChild(preview.element);
 
-// ---- Undo/Redo toolbar ----
+const zoomBtns = PREVIEW_SCALES.map((scale) => {
+  const btn = button(`${scale / PREVIEW_SCALES[0]}×`, () => {
+    preview.setScale(scale);
+    zoomBtns.forEach((b) => b.classList.toggle('active', b === btn));
+  });
+  btn.className = 'seg-btn' + (scale === preview.getScale() ? ' active' : '');
+  btn.title = `Preview at ${scale}px per pixel`;
+  zoomHost.appendChild(btn);
+  return btn;
+});
 
-const undoBtn = button('Undo', () => history.undo());
-const redoBtn = button('Redo', () => history.redo());
-const newProjectBtn = button('New Project', doNewProject);
-undoBtn.className = redoBtn.className = 'history-btn';
-newProjectBtn.className = 'history-btn new-project-btn';
+// ---- Undo/Redo ----
+
+const undoBtn = iconButton('undo', 'Undo (Ctrl+Z)', () => history.undo());
+const redoBtn = iconButton('redo', 'Redo (Ctrl+Y)', () => history.redo());
+undoBtn.className = redoBtn.className = 'icon-btn history-btn';
 historyHost.appendChild(undoBtn);
 historyHost.appendChild(redoBtn);
-historyHost.appendChild(newProjectBtn);
 
 // A minimal in-page confirm modal — `window.confirm` is unreliable
 // inside sandboxed/embedded webviews (some block or auto-reject native
@@ -238,17 +287,19 @@ function updateHistoryButtons() {
 
 window.addEventListener('beforeunload', () => autosave.flush());
 
-// ---- Pencil/Select tool group, Cut/Copy/Paste/Clear toolbar ----
+// ---- Tool rail: Pencil/Fill/Select modes, clipboard, transforms ----
 
-const pencilBtn = button('Pencil', () => setTool('paint'));
-const selectBtn = button('Select', () => setTool('select'));
-const fillBtn = button('Fill', () => setTool('fill'));
+const pencilBtn = iconButton('pencil', 'Pencil (P)', () => setTool('paint'), 'P');
+const fillBtn = iconButton('fill', 'Fill (F)', () => setTool('fill'), 'F');
+const selectBtn = iconButton('select', 'Select (S)', () => setTool('select'), 'S');
 
 function setTool(tool) {
   state.tool = tool;
-  pencilBtn.classList.toggle('active', tool === 'paint');
-  selectBtn.classList.toggle('active', tool === 'select');
-  fillBtn.classList.toggle('active', tool === 'fill');
+  [[pencilBtn, 'paint'], [fillBtn, 'fill'], [selectBtn, 'select']].forEach(([btn, t]) => {
+    btn.classList.toggle('active', tool === t);
+    btn.setAttribute('aria-pressed', String(tool === t));
+  });
+  updateStatusMeta();
 }
 
 function doSelectAll() {
@@ -256,6 +307,7 @@ function doSelectAll() {
   if (!project.grids[target]) return;
   activeGridIndex = target;
   selectionState = { gridIndex: target, selection: { kind: 'whole' } };
+  updateActiveGrid();
   refreshSelectionUI();
 }
 
@@ -338,17 +390,28 @@ function doMirrorV() {
   applyWholeGridTransform(mirrorVertical);
 }
 
-const cutBtn = button('Cut', doCut);
-const copyBtn = button('Copy', doCopy);
-const pasteBtn = button('Paste', doPaste);
-const rotateBtn = button('Rotate', doRotate);
-const mirrorHBtn = button('Flip H', doMirrorH);
-const mirrorVBtn = button('Flip V', doMirrorV);
-const clearBtn = button('Clear', doClear);
+const cutBtn = iconButton('cut', 'Cut (Ctrl+X)', doCut);
+const copyBtn = iconButton('copy', 'Copy (Ctrl+C)', doCopy);
+const pasteBtn = iconButton('paste', 'Paste (Ctrl+V)', doPaste);
+const rotateBtn = iconButton('rotate', 'Rotate 90°', doRotate);
+const mirrorHBtn = iconButton('flipH', 'Flip horizontal', doMirrorH);
+const mirrorVBtn = iconButton('flipV', 'Flip vertical', doMirrorV);
+const clearBtn = iconButton('clear', 'Clear selection', doClear);
 
-[pencilBtn, selectBtn, fillBtn, cutBtn, copyBtn, pasteBtn, rotateBtn, mirrorHBtn, mirrorVBtn, clearBtn].forEach((b) => {
-  b.className = 'edit-btn';
-  editHost.appendChild(b);
+[
+  [pencilBtn, fillBtn, selectBtn],
+  [cutBtn, copyBtn, pasteBtn],
+  [rotateBtn, mirrorHBtn, mirrorVBtn, clearBtn],
+].forEach((group, i) => {
+  if (i > 0) {
+    const divider = document.createElement('div');
+    divider.className = 'rail-divider';
+    toolRail.appendChild(divider);
+  }
+  group.forEach((b) => {
+    b.classList.add('rail-btn');
+    toolRail.appendChild(b);
+  });
 });
 
 setTool('paint');
@@ -394,15 +457,6 @@ function doExportBasic() {
   downloadBlob(new Blob([text], { type: 'text/plain' }), 'sprites.bas');
 }
 
-const exportPngBtn = button('Export PNG', doExportPng);
-const exportCBtn = button('Export C', doExportC);
-const exportBinBtn = button('Export BIN', doExportBin);
-const exportTinyBtn = button('Export TinySprite', doExportTiny);
-const exportBasicBtn = button('Export BASIC', doExportBasic);
-[exportPngBtn, exportCBtn, exportBinBtn, exportTinyBtn, exportBasicBtn].forEach((b) => {
-  b.className = 'edit-btn';
-  exportHost.appendChild(b);
-});
 
 // ---- Import: PNG, TinySprite (FUNCTIONAL_SPEC.md §6) ----
 //
@@ -479,31 +533,99 @@ async function doImportTiny(file) {
   }
 }
 
-function fileImportButton(text, accept, onFile) {
-  const wrapper = document.createElement('label');
-  wrapper.className = 'edit-btn';
-  wrapper.textContent = text;
+// Opens the browser's file picker and hands the chosen file to `onFile`.
+function pickFile(accept, onFile) {
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = accept;
-  input.style.display = 'none';
   input.addEventListener('change', () => {
     const file = input.files[0];
-    input.value = '';
     if (file) onFile(file);
   });
-  wrapper.appendChild(input);
-  return wrapper;
+  input.click();
 }
 
-importHost.appendChild(fileImportButton('Import PNG', 'image/png', doImportPng));
-importHost.appendChild(fileImportButton('Import TinySprite', '.tiny,text/plain', doImportTiny));
+// ---- Top-bar menus: File / Import / Export ----
+
+let openMenu = null; // { button, list } of the currently open dropdown
+
+function closeMenu() {
+  if (!openMenu) return;
+  openMenu.list.hidden = true;
+  openMenu.button.setAttribute('aria-expanded', 'false');
+  openMenu.button.classList.remove('open');
+  openMenu = null;
+}
+
+function createMenu(label, items) {
+  const wrap = document.createElement('div');
+  wrap.className = 'menu';
+  const btn = button(label, () => {
+    const wasOpen = openMenu && openMenu.button === btn;
+    closeMenu();
+    if (wasOpen) return;
+    list.hidden = false;
+    btn.setAttribute('aria-expanded', 'true');
+    btn.classList.add('open');
+    openMenu = { button: btn, list };
+  });
+  btn.className = 'menu-btn';
+  btn.setAttribute('aria-haspopup', 'true');
+  btn.setAttribute('aria-expanded', 'false');
+  btn.insertAdjacentHTML('beforeend', ICONS.chevron);
+  const list = document.createElement('div');
+  list.className = 'menu-list';
+  list.hidden = true;
+  items.forEach(([text, onPick]) => {
+    const item = button(text, () => {
+      closeMenu();
+      onPick();
+    });
+    item.className = 'menu-item';
+    list.appendChild(item);
+  });
+  wrap.append(btn, list);
+  menuHost.appendChild(wrap);
+}
+
+createMenu('File', [['New project', doNewProject]]);
+createMenu('Import', [
+  ['PNG image…', () => pickFile('image/png', doImportPng)],
+  ['TinySprite file…', () => pickFile('.tiny,text/plain', doImportTiny)],
+]);
+createMenu('Export', [
+  ['PNG images', doExportPng],
+  ['C source', doExportC],
+  ['Binary (.bin)', doExportBin],
+  ['TinySprite', doExportTiny],
+  ['BASIC listing', doExportBasic],
+]);
+
+document.addEventListener('pointerdown', (e) => {
+  if (openMenu && !openMenu.button.parentElement.contains(e.target)) closeMenu();
+});
 
 function button(text, onClick) {
   const b = document.createElement('button');
   b.type = 'button';
   b.textContent = text;
   b.addEventListener('click', onClick);
+  return b;
+}
+
+// Icon-only button; `label` is its accessible name and tooltip, and
+// `shortcut`, if given, is shown as a small key hint in the corner.
+function iconButton(icon, label, onClick, shortcut) {
+  const b = button('', onClick);
+  b.innerHTML = ICONS[icon];
+  b.title = label;
+  b.setAttribute('aria-label', label);
+  if (shortcut) {
+    const key = document.createElement('span');
+    key.className = 'key-hint';
+    key.textContent = shortcut;
+    b.appendChild(key);
+  }
   return b;
 }
 
@@ -554,8 +676,19 @@ window.addEventListener('keydown', (e) => {
     }
     return;
   }
+  if (e.altKey) return;
+  const tag = e.target && e.target.tagName;
+  if (tag !== 'INPUT' && tag !== 'TEXTAREA' && !pasteState) {
+    const toolKey = { p: 'paint', f: 'fill', s: 'select' }[e.key.toLowerCase()];
+    if (toolKey) {
+      setTool(toolKey);
+      return;
+    }
+  }
   if (e.key === 'Escape') {
-    if (pasteState) {
+    if (openMenu) {
+      closeMenu();
+    } else if (pasteState) {
       gridViews.forEach((v) => v.cancelPaste && v.cancelPaste());
     } else if (selectionState.selection) {
       selectionState = { gridIndex: -1, selection: null };
@@ -569,13 +702,31 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
+// The sprite that paste/rotate/flip/Ctrl+A act on: the last one
+// interacted with, or sprite 0 before any interaction.
+function effectiveActiveIndex() {
+  return activeGridIndex === -1 ? 0 : activeGridIndex;
+}
+
+function updateActiveGrid() {
+  const active = effectiveActiveIndex();
+  gridViews.forEach((v, i) => v.setActive(i === active));
+}
+
 function renderGrids() {
   gridsHost.innerHTML = '';
   gridViews = [];
 
+  // Which non-OR sprite each OR sprite mixes into (composite.js rule).
+  const anchorOf = {};
+  groupGrids(project.grids).forEach((g) => g.members.forEach((m) => { anchorOf[m] = g.anchorIndex; }));
+
   project.grids.forEach((sprite, index) => {
+    const anchor = anchorOf[index];
     const view = createGridView(sprite, state, () => { redraw(); updateHistoryButtons(); }, {
       label: `Sprite ${index}`,
+      active: index === effectiveActiveIndex(),
+      orNote: anchor === index ? 'OR on, but no sprite before it to mix with' : `Mixes with Sprite ${anchor}`,
       canRemove: project.grids.length > 1,
       history,
       onRemove: () => {
@@ -591,11 +742,12 @@ function renderGrids() {
         updateHistoryButtons();
         updateEditButtons();
       },
-      onToggleOr: () => redraw(),
+      onToggleOr: () => { renderGrids(); redraw(); },
       getHover: () => hoverCell,
       onHover: (cell) => setHoverCell(cell ? { ...cell, gridIndex: index } : null),
       onActivate: () => {
         activeGridIndex = index;
+        updateActiveGrid();
         updateEditButtons();
       },
       selection: {
@@ -626,13 +778,20 @@ function renderGrids() {
     gridsHost.appendChild(view.element);
   });
 
+  updateStatusMeta();
   if (project.grids.length < MAX_GRIDS) {
     const addBtn = document.createElement('button');
     addBtn.type = 'button';
     addBtn.className = 'add-grid-btn';
-    addBtn.textContent = '+';
+    addBtn.innerHTML = ICONS.plus;
+    const addLabel = document.createElement('span');
+    addLabel.className = 'add-grid-label';
+    addLabel.textContent = 'Add sprite';
+    const addCount = document.createElement('span');
+    addCount.className = 'add-grid-count';
+    addCount.textContent = `${project.grids.length} of ${MAX_GRIDS} sprites`;
+    addBtn.append(addLabel, addCount);
     addBtn.title = 'Add another sprite';
-    addBtn.setAttribute('aria-label', 'Add another sprite');
     addBtn.addEventListener('click', () => {
       history.perform(() => addGrid(project));
       renderGrids();
@@ -646,3 +805,4 @@ function renderGrids() {
 renderGrids();
 updateHistoryButtons();
 updateEditButtons();
+updateCoordDisplay();

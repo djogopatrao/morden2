@@ -2,23 +2,60 @@
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>MSX2 Mode 2 Sprite Editor</title>
+<title>MORDEN2 — MSX2 Mode 2 Sprite Editor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Silkscreen&display=swap" />
 <link rel="stylesheet" href="src/style.css" />
 </head>
 <body>
-  <header id="toolbar">
-    <div id="palette-host"></div>
-    <div id="preview-host"></div>
-    <div id="coord-host" class="coord-display" aria-live="polite">Row –, Col –, Color –, Composite –</div>
-  </header>
-  <div id="edit-toolbar">
-    <div id="history-host"></div>
-    <div id="edit-toolbar-host"></div>
-    <div id="import-toolbar-host"></div>
-    <div id="export-toolbar-host"></div>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <span id="brand-logo"></span>
+        <div class="brand-text">
+          <span class="brand-name">MORDEN2</span>
+          <span class="brand-sub">MSX2 Mode 2 sprite editor</span>
+        </div>
+      </div>
+      <nav id="menu-host" class="menus" aria-label="Main menu"></nav>
+      <div id="history-host" class="history"></div>
+      <div class="topbar-spacer"></div>
+      <div class="palette-type">
+        <span class="palette-type-label">Palette</span>
+        <div id="palette-type-host" class="segmented" role="group" aria-label="Palette"></div>
+      </div>
+    </header>
+
+    <div class="app-body">
+      <aside id="tool-rail" class="tool-rail" aria-label="Tools"></aside>
+
+      <main class="workspace">
+        <div class="workspace-head">
+          <h1>Sprites</h1>
+          <span class="workspace-hint">An OR sprite mixes its color with the sprite before it.</span>
+        </div>
+        <div id="import-message-host" role="status" aria-live="polite"></div>
+        <div id="grids-host"></div>
+      </main>
+
+      <aside class="side-panel">
+        <section class="panel-section">
+          <h2 class="panel-title">Color</h2>
+          <div id="palette-host"></div>
+        </section>
+        <section class="panel-section">
+          <div class="panel-title-row">
+            <h2 class="panel-title">Preview</h2>
+            <div id="zoom-host" class="segmented segmented-sm" role="group" aria-label="Preview zoom"></div>
+          </div>
+          <div id="preview-host"></div>
+        </section>
+      </aside>
+    </div>
+
+    <footer id="status-host" class="statusbar" aria-live="polite"></footer>
   </div>
-  <div id="import-message-host" role="status" aria-live="polite"></div>
-  <main id="grids-host"></main>
   <script type="module" src="src/app.js"></script>
 </body>
 </html>

@@ -1,8 +1,9 @@
 import { GRID_SIZE, getPixel, paintPixel, recolorRow, bucketFill as doBucketFill } from './model.js';
 import { MSX2_PALETTE } from './palette.js';
 import { normalizeRect } from './clipboard.js';
+import { ICONS } from './icons.js';
 
-const CELL = 20;
+const CELL = 16;
 
 // Renders one Sprite as a paintable pixel grid + its per-row "c" color
 // column, plus a header with remove/OR-mode controls. `state` is a
@@ -11,7 +12,7 @@ const CELL = 20;
 //
 // `opts`: { canRemove, onRemove, onToggleOr, label, history, selection,
 //           onActivate, paste, onPasteCommit, onPasteCancel, getHover,
-//           onHover }
+//           onHover, orNote, active }
 // - `opts.history`, if given (see history.js), coalesces each paint
 //   stroke / drag / selection gesture into a single undo entry (only
 //   mutating gestures — paint — actually push history; selection
@@ -31,10 +32,13 @@ const CELL = 20;
 //   same coordinate as the one the pointer is currently over.
 // - `opts.onHover(cell)`: called on pointermove/pointerleave over this
 //   grid's canvas with the hovered `{ row, col } | null`.
+// - `opts.orNote`: text shown under the grid while OR mode is on (which
+//   sprite it mixes with). `opts.active`: initial active-sprite state;
+//   the returned `setActive(bool)` updates it.
 export function createGridView(sprite, state, onChange, opts = {}) {
   const history = opts.history;
   const wrapper = document.createElement('div');
-  wrapper.className = 'grid-view';
+  wrapper.className = 'grid-view' + (opts.active ? ' active' : '');
 
   const header = document.createElement('div');
   header.className = 'grid-header';
@@ -59,6 +63,15 @@ export function createGridView(sprite, state, onChange, opts = {}) {
   });
   header.appendChild(label);
 
+  const activeChip = document.createElement('span');
+  activeChip.className = 'active-chip';
+  activeChip.textContent = 'Active';
+  header.appendChild(activeChip);
+
+  const spacer = document.createElement('span');
+  spacer.className = 'grid-header-spacer';
+  header.appendChild(spacer);
+
   const orToggle = document.createElement('button');
   orToggle.type = 'button';
   orToggle.className = 'or-toggle' + (sprite.orMode ? ' active' : '');
@@ -81,7 +94,7 @@ export function createGridView(sprite, state, onChange, opts = {}) {
     const removeBtn = document.createElement('button');
     removeBtn.type = 'button';
     removeBtn.className = 'remove-btn';
-    removeBtn.textContent = '×';
+    removeBtn.innerHTML = ICONS.close;
     removeBtn.title = 'Remove this sprite';
     removeBtn.setAttribute('aria-label', `Remove ${opts.label || 'this sprite'}`);
     removeBtn.addEventListener('click', () => {
@@ -123,6 +136,13 @@ export function createGridView(sprite, state, onChange, opts = {}) {
   body.appendChild(rowColorCol);
   wrapper.appendChild(body);
 
+  if (sprite.orMode && opts.orNote) {
+    const note = document.createElement('div');
+    note.className = 'or-note';
+    note.textContent = opts.orNote;
+    wrapper.appendChild(note);
+  }
+
   const ctx = canvas.getContext('2d');
 
   let selectDragStart = null;
@@ -140,20 +160,15 @@ export function createGridView(sprite, state, onChange, opts = {}) {
     return sel;
   }
 
-  const TRANSPARENT_LIGHT = '#d4d4d4';
-  const TRANSPARENT_DARK = '#8c8c8c';
+  const TRANSPARENT_LIGHT = '#34363d';
+  const TRANSPARENT_DARK = '#2b2d33';
+  const GRID_LINE = '#1d1f25';
 
-  // Transparent cells get their own 2x2 checkerboard (finer than the
-  // 16x16 grid itself), so "transparent" is legible as a texture rather
-  // than relying on contrast against neighboring cells alone.
-  function drawTransparentCell(x, y) {
-    const half = CELL / 2;
-    ctx.fillStyle = TRANSPARENT_LIGHT;
-    ctx.fillRect(x, y, half, half);
-    ctx.fillRect(x + half, y + half, half, half);
-    ctx.fillStyle = TRANSPARENT_DARK;
-    ctx.fillRect(x + half, y, half, half);
-    ctx.fillRect(x, y + half, half, half);
+  // Transparent cells alternate two dark tones, so "transparent" reads
+  // as an empty checkerboard distinct from any real palette color.
+  function drawTransparentCell(x, y, row, col) {
+    ctx.fillStyle = (row + col) % 2 ? TRANSPARENT_LIGHT : TRANSPARENT_DARK;
+    ctx.fillRect(x, y, CELL, CELL);
   }
 
   function draw() {
@@ -165,11 +180,11 @@ export function createGridView(sprite, state, onChange, opts = {}) {
           ctx.fillStyle = MSX2_PALETTE[sprite.rowColors[row]] || '#ff00ff';
           ctx.fillRect(x, y, CELL, CELL);
         } else {
-          drawTransparentCell(x, y);
+          drawTransparentCell(x, y, row, col);
         }
       }
     }
-    ctx.strokeStyle = '#555555';
+    ctx.strokeStyle = GRID_LINE;
     ctx.lineWidth = 1;
     for (let i = 0; i <= GRID_SIZE; i++) {
       ctx.beginPath();
@@ -183,7 +198,8 @@ export function createGridView(sprite, state, onChange, opts = {}) {
     }
     for (let row = 0; row < GRID_SIZE; row++) {
       const c = sprite.rowColors[row];
-      rowSwatches[row].style.background = c ? MSX2_PALETTE[c] : '#ffffff';
+      rowSwatches[row].classList.toggle('unset', !c);
+      rowSwatches[row].style.background = c ? MSX2_PALETTE[c] : '';
       rowSwatches[row].textContent = c ? String(c) : '';
     }
 
@@ -398,6 +414,10 @@ export function createGridView(sprite, state, onChange, opts = {}) {
     draw();
   }
 
+  function setActive(active) {
+    wrapper.classList.toggle('active', active);
+  }
+
   draw();
-  return { element: wrapper, draw, commitPaste, cancelPaste };
+  return { element: wrapper, draw, commitPaste, cancelPaste, setActive };
 }
