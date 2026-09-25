@@ -98,3 +98,19 @@ test('reset() discards undo/redo history without touching the project', () => {
   // replacing it (e.g. "New Project" swaps `project.grids` separately).
   assert.equal(getPixel(project.grids[0], 0, 0), 0);
 });
+
+test('a gesture that changes nothing records no undo step', () => {
+  const project = createProject();
+  const history = createHistory(project, () => {});
+
+  history.begin();
+  paintPixel(project.grids[0], 0, 0, 0); // erase an already-empty pixel
+  history.commit();
+  assert.equal(history.canUndo(), false);
+
+  history.perform(() => paintPixel(project.grids[0], 0, 0, 1));
+  history.undo();
+  history.begin();
+  history.commit(); // no-op must not clear redo
+  assert.equal(history.canRedo(), true);
+});

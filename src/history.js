@@ -11,6 +11,16 @@ import { cloneSprite } from './model.js';
 // mutation. Discrete one-shot actions (add/remove grid, OR toggle, a
 // row recolor click) call `begin()` immediately before mutating and
 // `commit()` immediately after.
+function sameSprite(a, b) {
+  return a.orMode === b.orMode && a.x === b.x && a.y === b.y
+    && a.opacity.every((v, i) => v === b.opacity[i])
+    && a.rowColors.every((v, i) => v === b.rowColors[i]);
+}
+
+function sameGrids(a, b) {
+  return a.length === b.length && a.every((s, i) => sameSprite(s, b[i]));
+}
+
 export function createHistory(project, onRestore) {
   const undoStack = [];
   const redoStack = [];
@@ -29,8 +39,14 @@ export function createHistory(project, onRestore) {
     pending = snapshot();
   }
 
+  // A gesture that changed nothing (e.g. erasing an already-empty
+  // pixel) records no undo step.
   function commit() {
     if (pending === null) return;
+    if (sameGrids(pending, project.grids)) {
+      pending = null;
+      return;
+    }
     undoStack.push(pending);
     redoStack.length = 0;
     pending = null;

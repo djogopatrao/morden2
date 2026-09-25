@@ -98,12 +98,11 @@ export function createGridView(sprite, state, onChange, opts = {}) {
   const canvasWrap = document.createElement('div');
   canvasWrap.className = 'grid-canvas-wrap';
 
-const canvas = document.createElement('canvas');
-canvas.width = GRID_SIZE * CELL;
-canvas.height = GRID_SIZE * CELL;
-canvas.className = 'grid-canvas';
-canvas.tabIndex = 0;
-let isMouseDownOnCanvas = false;
+  const canvas = document.createElement('canvas');
+  canvas.width = GRID_SIZE * CELL;
+  canvas.height = GRID_SIZE * CELL;
+  canvas.className = 'grid-canvas';
+  canvasWrap.appendChild(canvas);
 
   const rowColorCol = document.createElement('div');
   rowColorCol.className = 'row-color-col';
@@ -285,6 +284,14 @@ let isMouseDownOnCanvas = false;
       return;
     }
     history && history.begin();
+    if (state.tool === 'fill') {
+      const cell = cellFromEvent(e);
+      if (!cell) return;
+      doBucketFill(sprite, cell.row, cell.col, state.currentColor);
+      draw();
+      onChange && onChange();
+      return;
+    }
     handlePaint(e);
   });
   canvas.addEventListener('pointermove', (e) => {
@@ -308,7 +315,7 @@ let isMouseDownOnCanvas = false;
       }
       return;
     }
-    if (e.buttons & 1) handlePaint(e);
+    if ((e.buttons & 1) && state.tool === 'paint') handlePaint(e);
   });
   canvas.addEventListener('pointerleave', () => {
     opts.onHover && opts.onHover(null);
@@ -325,20 +332,6 @@ let isMouseDownOnCanvas = false;
       opts.selection && opts.selection.set({ kind: 'rect', ...rect });
       return;
     }
-    
-    // Handle fill tool click
-    if (state.tool === 'fill' && !pasteDrag) {
-      const cell = cellFromEvent(e);
-      if (cell) {
-        history && history.begin();
-        const sprite = opts.sprite; // Use the sprite passed to this grid view
-        doBucketFill(sprite, cell.row, cell.col, state.currentColor);
-        draw();
-        history && history.commit();
-        onChange && onChange();
-      }
-    }
-    
     history && history.commit();
   });
   canvas.addEventListener('contextmenu', (e) => {

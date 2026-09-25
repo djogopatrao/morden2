@@ -78,49 +78,30 @@ export function cloneSprite(sprite) {
   };
 }
 
-// Bucket flood fill implementation (backlogged feature)
-export function bucketFill(sprite, row, col, targetColor) {
-  if (!sprite || !targetColor || row < 0 || row >= 16 || col < 0 || col >= 16) return sprite;
-  
-  const GRID_SIZE = 16;
-  const stack = [{r: row, c: col}];
-  
+// Paint-bucket fill: every pixel 4-connected to (row, col) that shows
+// the same color as it (0 = transparent) gets painted with `colorIndex`
+// via paintPixel, so colorIndex 0 erases the region. The region is found
+// before anything is painted, since painting recolors whole rows.
+export function bucketFill(sprite, row, col, colorIndex) {
+  if (row < 0 || row >= GRID_SIZE || col < 0 || col >= GRID_SIZE) return;
+  const colorAt = (r, c) => (getPixel(sprite, r, c) ? sprite.rowColors[r] : 0);
+  const startColor = colorAt(row, col);
+  if (startColor === colorIndex) return;
+
+  const region = [];
+  const seen = new Uint8Array(GRID_SIZE * GRID_SIZE);
+  const stack = [[row, col]];
+  seen[row * GRID_SIZE + col] = 1;
   while (stack.length > 0) {
-    const curr = stack.pop();
-    const r = curr.r;
-    const c = curr.c;
-    
-    if (r < 0 || r >= 16 || c < 0 || c >= 16) continue;
-    if (sprite.opacity[r * GRID_SIZE + c] === 0) continue;
-    
-    const currentColor = sprite.rowColors[r];
-    
-    if (currentColor !== 0 && currentColor === targetColor) {
-      continue; // already same color, skip for efficiency
-    }
-    
-    // Fill with target color
-    sprite.rowColors[r] = targetColor;
-    sprite.opacity[r * GRID_SIZE + c] = 1;
-    
-    // Add connected neighbors (flood through same-color regions)
-    const directions = [
-      {r: r-1, c: c}, 
-      {r: r+1, c: c}, 
-      {r: r, c: c-1}, 
-      {r: r, c: c+1}
-    ];
-    
-    for (const dir of directions) {
-      const idx = dir.r * GRID_SIZE + dir.c;
-      if (idx >= 0 && idx < sprite.opacity.length) {
-        // Flood through transparent or same-color region
-        if (sprite.opacity[idx] === 0 || sprite.rowColors[dir.r] === targetColor) {
-          stack.push({r: dir.r, c: dir.c});
-        }
-      }
+    const [r, c] = stack.pop();
+    region.push([r, c]);
+    for (const [nr, nc] of [[r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]]) {
+      if (nr < 0 || nr >= GRID_SIZE || nc < 0 || nc >= GRID_SIZE) continue;
+      const idx = nr * GRID_SIZE + nc;
+      if (seen[idx] || colorAt(nr, nc) !== startColor) continue;
+      seen[idx] = 1;
+      stack.push([nr, nc]);
     }
   }
-  
-  return sprite;
+  for (const [r, c] of region) paintPixel(sprite, r, c, colorIndex);
 }
