@@ -830,6 +830,17 @@ button:disabled { opacity: 0.35; cursor: default; }
 
 #help-host { display: flex; }
 
+.publisher-link { display: flex; }
+
+.publisher-logo {
+  display: block;
+  height: 44px;
+  width: auto;
+  padding-left: 16px;
+  border-left: 1px solid var(--border);
+  box-sizing: content-box;
+}
+
 .help-mode,
 .help-mode * {
   cursor: help !important;
