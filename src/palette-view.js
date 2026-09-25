@@ -134,13 +134,20 @@ export function createPaletteView(state, onChange, opts = {}) {
         render();
         onChange && onChange();
       });
+      // Hovering (or focusing) a swatch previews its OR mixes without
+      // changing the paint color.
+      sw.addEventListener('pointerenter', () => renderMixes(i));
+      sw.addEventListener('focus', () => renderMixes(i));
+      sw.addEventListener('blur', () => renderMixes());
       swatchesEl.appendChild(sw);
     }
   }
+  swatchesEl.addEventListener('pointerleave', () => renderMixes());
 
-  function renderMixes() {
+  // `target` defaults to the current paint color; a hovered swatch
+  // passes its own color instead.
+  function renderMixes(target = state.currentColor) {
     mixesEl.innerHTML = '';
-    const target = state.currentColor;
 
     const head = document.createElement('div');
     head.className = 'mixes-head';
