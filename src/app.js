@@ -242,30 +242,17 @@ window.addEventListener('beforeunload', () => autosave.flush());
 
 const pencilBtn = button('Pencil', () => setTool('paint'));
 const selectBtn = button('Select', () => setTool('select'));
-
 setTool('paint');
 
 function setTool(tool) {
   state.tool = tool;
   
-  if (tool === 'fill') {
-    // Activate fill mode - remove active class from all buttons first
-    const editHost = document.getElementById('edit-toolbar-host');
-    if (editHost) {
-      const btns = editHost.querySelectorAll('.edit-btn');
-      btns.forEach(btn => btn.classList.remove('active'));
-    }
-  }
-}
-
-const activeGridCanvas = canvas; // Reference to last clicked grid's canvas for fill tool
-
-// ---- Pencil/Select/Fill toolbar ----
-function setTool(tool) {
   if (state.tool === 'fill') {
     document.getElementById('edit-toolbar-host').querySelectorAll('.edit-btn').forEach(btn => btn.classList.remove('active'));
   }
 }
+
+const activeGridCanvas = null; // Initialize as null, set when grid activated
 
 // ---- Grid click handling for fill tool ----
 
