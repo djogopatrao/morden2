@@ -272,6 +272,17 @@ export function createGridView(sprite, state, onChange, opts = {}) {
     onChange && onChange();
   }
 
+  // Right-button strokes erase (whatever the tool); `erasing` spans
+  // pointerdown..pointerup so the whole stroke is one undo step.
+  let erasing = false;
+  function eraseAt(e) {
+    const cell = cellFromEvent(e);
+    if (!cell) return;
+    paintPixel(sprite, cell.row, cell.col, 0);
+    draw();
+    onChange && onChange();
+  }
+
   function cellDelta(e, dragInfo) {
     const rect = canvas.getBoundingClientRect();
     const dx = ((e.clientX - dragInfo.startClientX) / rect.width) * GRID_SIZE;
@@ -280,17 +291,32 @@ export function createGridView(sprite, state, onChange, opts = {}) {
   }
 
   canvas.addEventListener('pointerdown', (e) => {
-    if (e.button === 1 && !paste && state.tool !== 'select') {
+    if (e.button === 1) {
+      // Middle button: eyedropper. preventDefault stops the browser's
+      // own middle-click action (autoscroll, primary-selection paste).
+      e.preventDefault();
+      if (paste) return;
       const cell = cellFromEvent(e);
       if (!cell) return;
       opts.onActivate && opts.onActivate();
-      history && history.begin();
-      // Eyedropper: set palette color to pixel's row color (skip transparent pixels)
-      state.currentColor = getPixel(sprite, cell.row, cell.col) ? sprite.rowColors[cell.row] : 0;
-      draw();
+      // A transparent pixel has no color to pick: keep the current one.
+      if (!getPixel(sprite, cell.row, cell.col)) return;
+      state.currentColor = sprite.rowColors[cell.row];
       onChange && onChange();
       return;
     }
+    if (e.button === 2) {
+      // Right button: erase, whatever the current tool.
+      if (paste) return;
+      canvas.setPointerCapture(e.pointerId);
+      opts.onActivate && opts.onActivate();
+      history && history.begin();
+      erasing = true;
+      eraseAt(e);
+      return;
+    }
+    // Only the left button runs the current tool.
+    if (e.button !== 0) return;
     canvas.setPointerCapture(e.pointerId);
     opts.onActivate && opts.onActivate();
     if (paste) {
@@ -337,12 +363,21 @@ export function createGridView(sprite, state, onChange, opts = {}) {
       }
       return;
     }
+    if (erasing) {
+      if (e.buttons & 2) eraseAt(e);
+      return;
+    }
     if ((e.buttons & 1) && state.tool === 'paint') handlePaint(e);
   });
   canvas.addEventListener('pointerleave', () => {
     opts.onHover && opts.onHover(null);
   });
-  canvas.addEventListener('pointerup', (e) => {
+  canvas.addEventListener('pointerup', () => {
+    if (erasing) {
+      erasing = false;
+      history && history.commit();
+      return;
+    }
     if (pasteDrag) {
       pasteDrag = null;
       return;
@@ -356,15 +391,15 @@ export function createGridView(sprite, state, onChange, opts = {}) {
     }
     history && history.commit();
   });
-  canvas.addEventListener('contextmenu', (e) => {
-    e.preventDefault();
-    const cell = cellFromEvent(e);
-    if (!cell) return;
-    paintPixel(sprite, cell.row, cell.col, 0);
-    draw();
-    onChange && onChange();
-  });
+  // Erasing happens on the right button's pointerdown/move; this only
+  // suppresses the browser's context menu over the grid.
+  canvas.addEventListener('contextmenu', (e) => e.preventDefault());
   canvas.addEventListener('pointercancel', () => {
+    if (erasing) {
+      erasing = false;
+      history && history.commit();
+      return;
+    }
     if (pasteDrag) {
       pasteDrag = null;
       return;
