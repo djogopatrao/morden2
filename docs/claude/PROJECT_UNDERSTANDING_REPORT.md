@@ -57,8 +57,8 @@ A browser-based editor specifically designed to design and preview **MSX2 Mode 2
 
 ### Entry Point
 
-- **File:** [`index.html`](index.html)
-- **Mechanism:** Loads [`src/app.js`](src/app.js) via `<script type="module">`
+- **File:** [`index.html`](../../index.html)
+- **Mechanism:** Loads [`src/app.js`](../../src/app.js) via `<script type="module">`
 - **Initialization flow** (all synchronous, file order):
   1. `createProject()` — default project with one empty sprite, paletteType='regular'
   2. `loadProject()` — restores from localStorage if present and valid
@@ -260,7 +260,7 @@ This "structural vs incremental" distinction is the project's rendering optimiza
 ### Mechanism
 
 - **Storage key:** `'mode2-sprites/project'` in browser localStorage
-- **Serialize** ([`persistence.js`](src/persistence.js:7)):
+- **Serialize** ([`persistence.js`](../../src/persistence.js:7)):
   ```json
   {
     "paletteType": "regular"|"screen8",

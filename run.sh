@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Serves this static, dependency-free app and opens it in the browser.
-# No build step, no install — see HANDOFF.md §3.
+# No build step, no install — see docs/claude/HANDOFF.md §3.
 set -euo pipefail
 
 PORT="${PORT:-8765}"
