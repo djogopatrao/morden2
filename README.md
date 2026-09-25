@@ -8,6 +8,8 @@ from just two sprites. Existing MSX sprite editors don't let you see that.
 MORDEN2 does. It shows what the VDP will draw while you paint, then exports
 it in formats ready for MSX-BASIC, C, or raw VRAM.
 
+**▶ Try it online: <https://djogopatrao.github.io/morden2/>**
+
 ![MORDEN2 editing a mushroom made of three sprites: a black outline, a red and
 yellow fill, and an OR sprite whose cyan spots mix with the red into white](docs/screenshot.png)
 
@@ -42,9 +44,11 @@ the red (8) cap into white (15).*
 
 ## Running it
 
-MORDEN2 is a static web app with no build step and no dependencies. It uses
-ES modules, so it must be served over HTTP; opening `index.html` straight
-from disk won't work.
+The easiest way is the hosted version at
+<https://djogopatrao.github.io/morden2/>, deployed from `main` with GitHub Pages.
+To run it locally: MORDEN2 is a static web app with no build step and no
+dependencies, but it uses ES modules, so it must be served over HTTP; opening
+`index.html` straight from disk won't work.
 
 ```sh
 ./run.sh
